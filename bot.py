@@ -178,9 +178,10 @@ class CowinBot:
 
 
 if __name__ == '__main__':
-    import json
-    setttings = json.load(open('bot_settings.json'))
-
-    data_handler = BotDataHandler()
-    bot = CowinBot(setttings['BOT_TOKEN'], data_handler)
-    bot.start_listening()
+    import os
+    token = os.environ.get('COWIN_TEL_BOT_KEY')
+    if token is not None:
+        data_handler = BotDataHandler()
+        bot = CowinBot(token, data_handler)
+        bot.start_listening()
+    
