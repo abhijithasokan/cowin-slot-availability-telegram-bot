@@ -9,6 +9,8 @@ from telegram.ext import (
     ConversationHandler,
     CallbackContext,
 )
+from telegram import constants
+
 from bot_data_handler import BotDataHandler
 from emojis import EMOJIS
 
@@ -165,7 +167,7 @@ class CowinBot:
         user = update.message.from_user
         area_name = context.user_data['area_name']
         self.data_handler.add_user(user, context.user_data)
-        age_msg_str = age_str.lower().replace('groups', '').replace('group', '').replace('age','')
+        age_msg_str = self.data_handler.get_age_str(age_str)
         update.message.reply_text("Will notify you when slots are available in your location %s, for %s age group %s"%(area_name, age_msg_str, EMOJIS['thumbs_up']))
         
         reply_keyboard = [[EMOJIS['thumbs_up'], 'Nope']]
@@ -189,18 +191,23 @@ class CowinBot:
             centers = self.data_handler.get_vaccine_centers_for_user(user_id)
             if centers is not None:
                 if centers:
-                    msg = '\n\n'.join(str(cc) for cc in centers)
+                    chunks = self.data_handler.get_chunked_msg_text(centers, constants.MAX_MESSAGE_LENGTH)
+                    for chunk_msg in chunks:
+                        update.message.reply_text(chunk_msg)
+                    return ConversationHandler.END  
+                    #msg = '\n\n'.join(str(cc) for cc in centers)
                 else:
                     msg = MESSAGES['no_slots']
             else:
                 msg = "Couldn't fetch the result "
-        except: #todo: send exception to master bot?
-            msg = 'You have not provided locality and age information. \n click here to /start'
-            update.message.reply_text(msg)
+        except Exception as ee:
+            print("Exception here - ", ee) 
+            #msg = 'You have not provided locality and age information. \n click here to /start'
+            #update.message.reply_text(msg)
             return ConversationHandler.END  
         
 
-        send_message(msg, update.message.reply_text)
+        update.message.reply_text(msg)
         return ConversationHandler.END  
 
         # reply_keyboard = [['👍', 'Nope']]
@@ -212,7 +219,7 @@ class CowinBot:
 
 
 
-from telegram import constants
+
 def send_message(text, sender_func):
     if len(text) <= constants.MAX_MESSAGE_LENGTH:
         return sender_func(text)

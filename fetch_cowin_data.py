@@ -132,7 +132,7 @@ class CowinDataConnector:
         if os.path.exists(CowinDataConnector.STATES_FILE_NAME):
             with open(CowinDataConnector.STATES_FILE_NAME) as fp:
                 data = json.load(fp)
-                return data['states'], data['districts']
+                return data
 
 
 

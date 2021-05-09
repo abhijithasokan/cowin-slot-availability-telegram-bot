@@ -43,7 +43,7 @@ ________________________________
 | Date | Seats | Age |   Vaccine
 '''
         for session in v_ss:
-            vacc_name = session.vaccine_.title()[:max(8, len(session.vaccine_))]
+            vacc_name = session.vaccine_.title()[:min(8, len(session.vaccine_))]
             # msg_date_part = session.date_.strftime("%d/%m") 
             # msg_seats = str(session.available_capacity_)
             # msg_seats = 
@@ -92,6 +92,7 @@ class CowinCenter:
                     'sessions' : sessions,
                 }
                 yield CowinCenter(**kwargs)
+
 
     def __str__(self):
         ss = EMOJIS['hospital']  + ' {}, {}\n'.format(self.name_, self.block_name_)
