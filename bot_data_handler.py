@@ -14,7 +14,7 @@ class BotDataHandler:
     AGE_MAPPING = {
         'Above 45' : 45,
         'Above 18' : 18,
-        'All Age groups' : 0
+        'All Age groups' : 200
     }
     def __init__(self):
         engine = create_engine('sqlite:///test.db')    
@@ -38,10 +38,11 @@ class BotDataHandler:
 
         area_code = user.area_code
         area_type = user.area_type
+        age = user.age_group
         print("------------------------", user)
         api_data = self.data_conn.fetch_data(area_code, datetime.now(), area_type == "pincode")
         if api_data:
-            centers = list(CowinCenter.build_from_json(api_data.get("centers", [])))
+            centers = list( CowinCenter.build_and_get_filtered_centers(api_data.get("centers", []), age, 0) )
         else:
             centers = None
         return centers
