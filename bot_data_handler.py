@@ -31,7 +31,7 @@ class BotDataHandler:
         
 
     def add_user(self, user, user_data):
-        fname = (user.first_name if user.first_name else '') + ' ' + (user.last_name if user.last_name else None)
+        fname = (user.first_name if user.first_name else '') + ' ' + (user.last_name if user.last_name else '')
         uname = user.username if user.username else ''
         age = BotDataHandler.AGE_MAPPING.get(user_data['age'], BotDataHandler.AGE_MAPPING['All Age groups'])
         self.db_session.merge(User(user_id = user.id, uname = uname, fname = fname, 
