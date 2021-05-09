@@ -17,7 +17,7 @@ class BroadCaster:
         self.dist_code_to_name = self.data_handler.get_dist_code_to_name()
 
     def get_slot_count(self, centers):
-        return sum( len(center.sessions_) for center in centers )
+        return sum( sum(ss.available_capacity_ for ss in center.sessions_) for center in centers )
 
     def summarize(self, slot_count, num_centers, age, area_code, is_pincode):
         msg  = 'There are ' 
