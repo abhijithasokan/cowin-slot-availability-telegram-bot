@@ -1,8 +1,10 @@
 from bot_data_handler import BotDataHandler
-from datetime import time
+from datetime import datetime
 import os
 
 from telegram import Bot, constants
+def log_msg(msg):
+    print("<%s>  %s"%(datetime.now().strftime("%H:%M:%S"), msg))
 
 class BroadCaster:
     def __init__(self):
@@ -41,12 +43,11 @@ class BroadCaster:
                 age_groups = age_wise_users.keys()
                 data_gen = self.data_handler.get_filtered_data_for_location(age_groups, area_code, is_pincode, slot_threshold = 1)
                 print("Handle - %d" % area_code)
-                if data_gen is None:
-                    print("Query failed for dist code - ", area_code)
                 for age_gp, centers in data_gen:
                     slot_count = self.get_slot_count(centers)
                     if not slot_count:
                         continue
+                    log_msg("area - {}, slot - {}, age - {}".format(area_code, slot_count, age_gp))
                     # add check for slot count here .. 
                     msg = self.summarize(slot_count, len(centers), age_gp, area_code, is_pincode)
                     items = [msg, "\n\nHere are few of them\n\n"] + self.get_few_from_top(centers, 5) +  ["\n\nClick here to get full current status /get_latest"]

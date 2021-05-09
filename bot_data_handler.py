@@ -8,7 +8,7 @@ import json
 from sqlalchemy import create_engine
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker 
-from db_models import User
+from db_models import User, get_db_login_info
 
 from collections import defaultdict
 
@@ -21,7 +21,10 @@ class BotDataHandler:
 
 
     def __init__(self):
-        engine = create_engine('sqlite:///test.db')    
+        db_login_info = get_db_login_info()
+        host, db_name, user_name, password = db_login_info['host'], db_login_info['name'], db_login_info['username'], db_login_info['password']
+        engine = create_engine("mysql+pymysql://{}:{}@{}/{}?charset=utf8mb4".format(user_name, password, host, db_name))
+    
         self.db_session = sessionmaker(bind=engine)()
 
         self.data_conn = CowinDataConnector()
@@ -43,7 +46,7 @@ class BotDataHandler:
         area_code = user.area_code
         area_type = user.area_type
         age = user.age_group
-        print("------------------------", user)
+        print("--------", user)
         api_data = self.data_conn.fetch_data(area_code, datetime.now(), area_type == "pincode")
         if api_data:
             centers = list( CowinCenter.build_and_get_filtered_centers(api_data.get("centers", []), age, 1) )

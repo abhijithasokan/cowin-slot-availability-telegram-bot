@@ -29,8 +29,18 @@ MESSAGES = {
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                      level=logging.INFO)
 
-
-
+DBG_LVL = ''
+from datetime import datetime
+def log_deco(func):
+    def new_func(self, update, context, *args, **kwargs):
+        if DBG_LVL == 'DBG':
+            in_msg = update.message.text.strip() 
+            udata = context.user_data
+            user = update.message.from_user
+            print("<%s>"%datetime.now().strftime("%H:%M:%S"), "@{} -- {}<{}>:  -- {}".format(func.__name__, user.first_name, user.id, in_msg, context) )
+        return func(self, update, context, *args, **kwargs)
+        
+    return new_func
 
 
 
@@ -88,6 +98,7 @@ class CowinBot:
         
         return CowinBot.AREA_SELECT_METHOD
 
+    @log_deco
     def _handler_for_area_type(self, update, context):
         area_method = update.message.text.strip().lower()
         if area_method == "pincode":
@@ -104,13 +115,12 @@ class CowinBot:
             update.message.reply_text(MESSAGES['invalid_area_type'], reply_markup=CowinBot.AREA_TYPE_SELECT_KEYBOARD)
             return CowinBot.AREA_SELECT_METHOD
 
-
     def build_kb_layout(self, keys, cols = 3):
         keys = sorted(keys)
         kb_layout = [ keys[ind: min(len(keys), ind + cols)] for ind in range(0, len(keys), cols) ]
         return kb_layout
 
-
+    @log_deco
     def _handler_for_select_state(self, update, context):
         state_name = update.message.text.strip()
         state_id = self.data_handler.get_states_data()['state_name_to_id'].get(state_name, None)
@@ -126,7 +136,7 @@ class CowinBot:
         kb = self.build_kb_layout(district_names)
         update.message.reply_text("Select your district", reply_markup = ReplyKeyboardMarkup(kb, one_time_keyboard=True) )
         return CowinBot.SELECT_DISTRICT  
-
+    @log_deco
     def _handler_for_select_district(self, update, context):
         district_name = update.message.text.strip()
         district_id = self.data_handler.get_states_data()['district_name_to_id'].get(district_name, None)
@@ -137,7 +147,8 @@ class CowinBot:
         context.user_data['area_name'] = "Dist - " + district_name
         update.message.reply_text(MESSAGES['ask_age'], reply_markup=CowinBot.AGE_KEYBOARD)
         return CowinBot.AGE
-        
+    
+    @log_deco
     def _handler_update_pin_code(self, update, context):
         pin_code_str = update.message.text.strip()
         print("update_pin_code", pin_code_str)
@@ -151,7 +162,7 @@ class CowinBot:
         return CowinBot.AGE
 
 
-
+    @log_deco
     def _handler_update_age(self, update, context):  
         user_id = update.effective_chat.id
         age_str = update.message.text.strip()
@@ -179,7 +190,7 @@ class CowinBot:
         return CowinBot.FETCH_CURRENT
 
 
-
+    @log_deco
     def _handler_current_status(self, update, context):
         if update.message.text.strip() not in [EMOJIS['thumbs_up'], '/get_latest']:
             update.message.reply_text("Done " + EMOJIS['thumbs_up'] +'\n\n' + MESSAGES['help'])
@@ -246,8 +257,11 @@ def send_message(text, sender_func):
 
 if __name__ == '__main__':
     import os
+    import sys
     token = os.environ.get('COWIN_TEL_BOT_KEY')
-
+    if '--dbg' in sys.argv:
+        print("RUNNING IN DBG MODE")
+        DBG_LVL = 'DBG'
     
     if token is not None:
         data_handler = BotDataHandler()
