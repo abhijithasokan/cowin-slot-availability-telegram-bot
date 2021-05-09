@@ -109,7 +109,7 @@ class BotDataHandler:
         for uu in users:
             user_id = uu.user_id
             area_type = uu.area_type
-            area_code = int(uu.area_code)
+            area_code = uu.area_code
             age_group = int(uu.age_group)
             if area_type == 'pincode':
                 pincode_to_age_to_user_ids[area_code][age_group].append(user_id)

@@ -33,7 +33,7 @@ class BroadCaster:
         msg += ' slots ' if slot_count != 1 else ' slot ' 
         msg += 'available across %d %s '%(num_centers, 'centres' if slot_count !=1 else 'centre') if slot_count else ''
         msg += 'in '
-        msg += '[pin] %d'%(area_code) if is_pincode else self.dist_code_to_name.get(area_code, '[district] %d'%area_code)
+        msg += '[pin] %s'%(area_code) if is_pincode else self.dist_code_to_name.get(area_code, '[district] %s'%area_code)
         msg += ' for age group ' + self.data_handler.get_age_str2(age)
         return msg
 
@@ -65,7 +65,7 @@ class BroadCaster:
             for area_code, age_wise_users in area_to_agewise_users.items():
                 age_groups = age_wise_users.keys()
                 data_gen = self.data_handler.get_filtered_data_for_location(age_groups, area_code, is_pincode, slot_threshold = 1)
-                print("Handle - %d" % area_code)
+                print("Handle - %s" % area_code)
                 for age_gp, centers in data_gen:
                     slot_count = self.get_slot_count(centers)
                     if not slot_count:
