@@ -17,12 +17,13 @@ from emojis import EMOJIS
 AREA_INPUT_METHODS = ['Pincode', 'District']
 MESSAGES = {
     'welcome_message' : '''Hi,\nSend me your PINCODE & AGE and I will update you when new slots for vaccination are available in your area ''' + EMOJIS['syringe'],
-    'help' : 'Press here to /start again or update age/location\n\nPress here to /get_latest slot availability status ',
+    'help' : 'Press here to /start again or update age/location\nPress here to /get_latest slot availability status\nClick here to /stop_receiving_updates and here to /resume_updates later',
     'ask_age' : 'Select the age group for which you want to receive vaccine availability updates',
     'invalid_area_type' : 'That is not a valid way to input area ' + EMOJIS['sad'] + '\nChoices are - %s'%(', '.join(AREA_INPUT_METHODS)),
     'unexpected_error' : 'Sorry, bot encountered an unexpected error, please /start again',
     'no_slots' : 'Currently no vaccinations slots are available in your area ' + EMOJIS['sad'] + ' \nStay tuned for updates',
     'invalid_age_group' : "Please provide a valid age group\nChoices are - " + ', '.join(BotDataHandler.AGE_MAPPING.keys()),
+    'ask_area_type' : 'Choose an option to input your area ' +  EMOJIS['location'] + '\n\nNOTE: Selecting district will give you access to more vaccination centres updates',
 }
 
 
@@ -62,14 +63,20 @@ class CowinBot:
     def start_listening(self):
         for handler in self._build_conv_handlers():
             self.dispatcher.add_handler(handler)       
-        self.dispatcher.add_handler(MessageHandler(Filters.text, self._handler_for_help))
+        self.dispatcher.add_handler(MessageHandler(Filters.text, self._handler_for_help_implicit))
         self.updater.start_polling()
     
 
     def _build_conv_handlers(self):
         help_cmd_handler = CommandHandler('help', self._handler_for_help)
-        update_cmd_handler = CommandHandler('get_latest', self._handler_current_status)
         start_cmd_handler = CommandHandler('start', self._handler_for_start)
+        
+        handlers = []
+        handlers.append( help_cmd_handler )
+        handlers.append( CommandHandler('get_latest', self._handler_current_status))
+        handlers.append( CommandHandler('stop_receiving_updates', self._handler_for_stop_updates))
+        handlers.append( CommandHandler('resume_updates', self._handler_for_resume_updates))
+        
         conv_handler = ConversationHandler(
             entry_points=[start_cmd_handler],
             states = {
@@ -82,10 +89,18 @@ class CowinBot:
             },
             fallbacks=[MessageHandler(Filters.text, self._handler_for_start)],
         )
-        return help_cmd_handler, update_cmd_handler, conv_handler, start_cmd_handler
+
+        handlers.append( conv_handler )
+        handlers.append( start_cmd_handler )
+        return handlers
 
     def _handler_for_help(self, update, context):
         update.message.reply_text(MESSAGES['help'])
+        return ConversationHandler.END  
+
+    @log_deco
+    def _handler_for_help_implicit(self, update, context):
+        update.message.reply_text("I couldn't understand that. You can try below options - \n\n" + MESSAGES['help'])
         return ConversationHandler.END  
 
     def _handler_for_start(self, update, context):
@@ -93,7 +108,7 @@ class CowinBot:
         if in_msg == '/start' and (not context.user_data): # when its start and its new user
             update.message.reply_text(MESSAGES['welcome_message'])
         user = update.message.from_user
-        update.message.reply_text("Choose an option to input your area " +  EMOJIS['location'], reply_markup=CowinBot.AREA_TYPE_SELECT_KEYBOARD)
+        update.message.reply_text(MESSAGES['ask_area_type'], reply_markup=CowinBot.AREA_TYPE_SELECT_KEYBOARD)
         with open("user.txt", 'a') as ff:
             ff.write("\n {}, {}, {}, {}".format(user.id, user.username, user.first_name, user.last_name))
         
@@ -200,25 +215,21 @@ class CowinBot:
         user_id = update.effective_chat.id
 
         try:
-            centers = self.data_handler.get_vaccine_centers_for_user(user_id)
-            if centers is not None:
-                if centers:
-                    chunks = self.data_handler.get_chunked_msg_text(centers, constants.MAX_MESSAGE_LENGTH)
-                    for chunk_msg in chunks:
-                        update.message.reply_text(chunk_msg)
-                    return ConversationHandler.END  
+            centers, no_vaccine_msg = self.data_handler.get_vaccine_centers_for_user(user_id)
+            if no_vaccine_msg:
+                msg = no_vaccine_msg + ' ' + EMOJIS['sad']
+            elif centers:
+                chunks = self.data_handler.get_chunked_msg_text(centers, constants.MAX_MESSAGE_LENGTH)
+                for chunk_msg in chunks:
+                    update.message.reply_text(chunk_msg)
+                return ConversationHandler.END  
                     #msg = '\n\n'.join(str(cc) for cc in centers)
-                else:
-                    msg = MESSAGES['no_slots']
             else:
                 msg = "Couldn't fetch the result "
         except Exception as ee:
             print("Exception here - ", ee) 
-            #msg = 'You have not provided locality and age information. \n click here to /start'
-            #update.message.reply_text(msg)
             return ConversationHandler.END  
         
-
         update.message.reply_text(msg)
         return ConversationHandler.END  
 
@@ -229,7 +240,17 @@ class CowinBot:
         # )
         # return CowinBot.FETCH_CURRENT
 
+    @log_deco
+    def _handler_for_stop_updates(self, update, context):  
+        user_id = update.effective_chat.id
+        self.data_handler.stop_update_for_user(user_id)
+        update.message.reply_text("Updates are now paused for you. Can resume by /resume_updates")
 
+    @log_deco
+    def _handler_for_resume_updates(self, update, context):  
+        user_id = update.effective_chat.id
+        self.data_handler.resume_update_for_user(user_id)
+        update.message.reply_text("You will start getting updates now")
 
 
 def send_message(text, sender_func):
@@ -255,6 +276,9 @@ def send_message(text, sender_func):
     for part in parts:
         sender_func(part)
     return msg  # return only the last message
+
+
+
 
 if __name__ == '__main__':
     import os

@@ -106,7 +106,8 @@ class CowinDataConnector:
             data = {
                 'state_name_to_id': state_name_to_id, 
                 'state_to_district_names': state_to_district_names, 
-                'district_name_to_id' :district_name_to_id
+                'district_name_to_id' : district_name_to_id,
+                'district_id_to_name' : { val:key for key, val in district_name_to_id.items() }
             }
             #print(data)
             json.dump(data, fp)

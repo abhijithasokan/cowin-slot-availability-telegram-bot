@@ -19,6 +19,7 @@ class BotDataHandler:
         'All Age groups' : 200
     }
 
+    REV_AGE_MAPPING = { val:key for key, val in AGE_MAPPING.items()}
 
     def __init__(self):
         db_login_info = get_db_login_info()
@@ -39,6 +40,26 @@ class BotDataHandler:
         self.db_session.commit()
 
 
+    def stop_update_for_user(self, user_id):
+        user = self.db_session.query(User).get(user_id)
+        if (user is not None) and user.is_subscribed == True:
+            user.is_subscribed = False
+            self.db_session.commit()
+
+
+    def resume_update_for_user(self, user_id):
+        user = self.db_session.query(User).get(user_id)
+        if (user is not None) and user.is_subscribed == False:
+            user.is_subscribed = True
+            self.db_session.commit()
+
+    def get_area_str(self, area_code, area_type):
+        area_code = int(area_code)
+        if area_type == 'pincode':
+            return '[pin] {}'.format(area_code)
+        else:
+            return self.get_states_data()['district_id_to_name'].get(area_code, '[district] %d'%area_code)
+
     def get_vaccine_centers_for_user(self, user_id):
         user = self.db_session.query(User).get(user_id)
         if user is None:
@@ -53,7 +74,12 @@ class BotDataHandler:
             centers = list( CowinCenter.build_and_get_filtered_centers(api_data.get("centers", []), age, 1) )
         else:
             centers = None
-        return centers
+
+        no_vaccine_msg = None
+        if centers is not None and len(centers) == 0:
+            # no vaccination centers
+            no_vaccine_msg = 'Currently no vaccination slots are available in {} for {} age group'.format(self.get_area_str(area_code, area_type), self.get_age_str2(age))
+        return centers, no_vaccine_msg
 
 
     def get_filtered_data_for_location(self, age_groups, area_code, is_pincode, slot_threshold = 1):
@@ -69,15 +95,13 @@ class BotDataHandler:
     def get_states_data(self):
         return self.data_conn.get_states_data()
 
-    def get_dist_code_to_name(self):
+    def get_dist_code_to_name_from_disk(self):
         data = self.data_conn.fetch_states_and_districts_from_disk()
         if data is not None:
-            name_to_id =  data['district_name_to_id']
-            return { val: key for (key, val) in name_to_id.items() }
-
+            return data['district_id_to_name']
 
     def segregate_user_groups(self):
-        users = self.db_session.query(User).all()
+        users = self.db_session.query(User).filter_by(is_subscribed=True)
 
         #age_gps = BotDataHandler.AGE_MAPPING.values()
         dist_to_age_to_user_ids = defaultdict( lambda : defaultdict(list) )
@@ -109,10 +133,9 @@ class BotDataHandler:
         return chunks
 
 
-    def get_age_str(self, age_str):
-        return age_str.lower().replace('groups', '').replace('group', '').replace('age','').title()
+    def get_age_str(self, age):
+        return str(age).lower().replace('groups', '').replace('group', '').replace('age','').title().strip()
 
-    def get_rev_age_mapping(self, age):
-        rev_map = { val:key for (key, val) in BotDataHandler.AGE_MAPPING.items() }
-        ss = rev_map[age]
+    def get_age_str2(self, age):
+        ss = BotDataHandler.REV_AGE_MAPPING[age]
         return self.get_age_str(ss)

@@ -3,6 +3,14 @@ from datetime import datetime
 import os
 
 from telegram import Bot, constants
+
+MESSAGES = {
+    'stop_resume_updates' : 'Click here to /stop_receiving_updates\nYou can later /resume_updates',
+    'view_complete' : 'To view *complete list* press /get_latest',
+    'view_updated' : 'To view *complete & updated list* press /get_latest',
+}
+
+
 def log_msg(msg):
     print("<%s>  %s"%(datetime.now().strftime("%H:%M:%S"), msg))
 
@@ -14,24 +22,39 @@ class BroadCaster:
         self.data_handler = BotDataHandler()
         self.bot = Bot(token)
 
-        self.dist_code_to_name = self.data_handler.get_dist_code_to_name()
+        self.dist_code_to_name = self.data_handler.get_dist_code_to_name_from_disk()
 
     def get_slot_count(self, centers):
         return sum( sum(ss.available_capacity_ for ss in center.sessions_) for center in centers )
 
     def summarize(self, slot_count, num_centers, age, area_code, is_pincode):
-        msg  = 'There are ' 
+        msg  = 'There %s ' %('are' if slot_count != 1 else 'is' ) 
         msg += str(slot_count) if slot_count else 'no'
-        msg += ' slots '
-        msg += 'available across %d centers '%(num_centers) if slot_count else ''
+        msg += ' slots ' if slot_count != 1 else ' slot ' 
+        msg += 'available across %d %s '%(num_centers, 'centres' if slot_count !=1 else 'centre') if slot_count else ''
         msg += 'in '
-        msg += '[Pin] %d'%(area_code) if is_pincode else self.dist_code_to_name.get(area_code, '[District] %d'%area_code)
-        msg += ' for age group ' + self.data_handler.get_rev_age_mapping(age)
+        msg += '[pin] %d'%(area_code) if is_pincode else self.dist_code_to_name.get(area_code, '[district] %d'%area_code)
+        msg += ' for age group ' + self.data_handler.get_age_str2(age)
         return msg
 
     def get_few_from_top(self, centers, limit):
         centers = sorted(centers, key = lambda ct: -sum(ss.available_capacity_ for ss in ct.sessions_) )
         return centers[:min(limit, len(centers))]
+
+
+    def build_msg_in_chunks(self, summary_msg, centers):
+        MAX_CENTERS_IN_MSG = 5
+        can_send_all_data_now = (len(centers) <= MAX_CENTERS_IN_MSG)
+
+        items  = [summary_msg + '\n\n']
+        items += ["Here are few of them\n\n"]  if (not can_send_all_data_now) else [] 
+        items += centers if can_send_all_data_now else self.get_few_from_top(centers, MAX_CENTERS_IN_MSG)
+        items += ["\n\n"]
+        items += [MESSAGES['view_complete']] if (not can_send_all_data_now) else [MESSAGES['view_updated']]
+        items += ['\n\n' + MESSAGES['stop_resume_updates']]
+
+        return self.data_handler.get_chunked_msg_text(items, constants.MAX_MESSAGE_LENGTH)
+
 
     def push_updates(self):
         dist_to_age_to_user_ids, pincode_to_age_to_user_ids = self.data_handler.segregate_user_groups()
@@ -49,11 +72,11 @@ class BroadCaster:
                         continue
                     log_msg("area - {}, slot - {}, age - {}".format(area_code, slot_count, age_gp))
                     # add check for slot count here .. 
-                    msg = self.summarize(slot_count, len(centers), age_gp, area_code, is_pincode)
-                    items = [msg, "\n\nHere are few of them\n\n"] + self.get_few_from_top(centers, 5) +  ["\n\nClick here to get full current status /get_latest"]
-                    chunks = self.data_handler.get_chunked_msg_text(items, constants.MAX_MESSAGE_LENGTH)
+                    summary_msg = self.summarize(slot_count, len(centers), age_gp, area_code, is_pincode)
+                    
+                    msg_chunks = self.build_msg_in_chunks(summary_msg, centers)
                     for user_id in age_wise_users[age_gp]:
-                        for chunk in chunks:
+                        for chunk in msg_chunks:
                             self.bot.send_message(user_id, chunk)
 
 
