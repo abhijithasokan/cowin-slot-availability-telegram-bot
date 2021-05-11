@@ -39,7 +39,7 @@ def log_deco(func):
             udata = context.user_data
             user = update.message.from_user
             uname = user.first_name if user.first_name else ''
-            print("<%s>"%datetime.now().strftime("%H:%M:%S"), "@{} -- {}<{}>:  -- {}".format(func.__name__, uname, user.id, in_msg, context) )
+            print("<%s>"%datetime.now().strftime("%H:%M %d-%m"), "@{} -- {}<{}>:  -- {}".format(func.__name__, uname, user.id, in_msg, context) )
         return func(self, update, context, *args, **kwargs)
         
     return new_func

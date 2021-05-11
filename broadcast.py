@@ -12,7 +12,7 @@ MESSAGES = {
 
 
 def log_msg(msg):
-    print("<%s>  %s"%(datetime.now().strftime("%H:%M:%S"), msg))
+    print("<%s>  %s"%(datetime.now().strftime("%H:%M %d-%m"), msg))
 
 class BroadCaster:
     def __init__(self):
@@ -34,7 +34,7 @@ class BroadCaster:
         msg += 'available across %d %s '%(num_centers, 'centres' if slot_count !=1 else 'centre') if slot_count else ''
         msg += 'in '
         msg += '[pin] %s'%(area_code) if is_pincode else self.dist_code_to_name.get(area_code, '[district] %s'%area_code)
-        msg += ' for age group ' + self.data_handler.get_age_str2(age)
+        msg += ' for {} age group'.format(self.data_handler.get_age_str2(age))
         return msg
 
     def get_few_from_top(self, centers, limit):
@@ -76,8 +76,11 @@ class BroadCaster:
                     
                     msg_chunks = self.build_msg_in_chunks(summary_msg, centers)
                     for user_id in age_wise_users[age_gp]:
-                        for chunk in msg_chunks:
-                            self.bot.send_message(user_id, chunk)
+                        try:
+                            for chunk in msg_chunks:
+                                self.bot.send_message(user_id, chunk)
+                        except Exception as ee:
+                            log_msg("Failed for user {} reason {}".format(user_id, str(ee)))
 
 
 if __name__ == '__main__':  
