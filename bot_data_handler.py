@@ -8,17 +8,13 @@ import json
 from sqlalchemy import create_engine
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker 
-from db_models import User, get_db_login_info
+from db_models import User, UserActivity, get_db_login_info
 
 from collections import defaultdict
 
 class BotDataHandler:
-    AGE_MAPPING = {
-        'Above 45' : 45,
-        'Above 18' : 18,
-        'All Age groups' : 200
-    }
-
+    AGE_MAPPING_IN_ORDER = [ ('Above 45', 45), ('All Age groups', 200), ('Above 18', 18) ]
+    AGE_MAPPING = dict(AGE_MAPPING_IN_ORDER)
     REV_AGE_MAPPING = { val:key for key, val in AGE_MAPPING.items()}
 
     def __init__(self):
@@ -63,7 +59,7 @@ class BotDataHandler:
     def get_vaccine_centers_for_user(self, user_id):
         user = self.db_session.query(User).get(user_id)
         if user is None:
-            raise Exception("User doesn't exist")
+            raise Exception("User doesn't exist")  # handled later?
 
         area_code = user.area_code
         area_type = user.area_type
@@ -78,7 +74,7 @@ class BotDataHandler:
         no_vaccine_msg = None
         if centers is not None and len(centers) == 0:
             # no vaccination centers
-            no_vaccine_msg = 'Currently no vaccination slots are available in {} for {} age group'.format(self.get_area_str(area_code, area_type), self.get_age_str2(age))
+            no_vaccine_msg = 'Currently no vaccination slots are available in {} for age group {}'.format(self.get_area_str(area_code, area_type), self.get_age_str2(age))
         return centers, no_vaccine_msg
 
 
@@ -118,6 +114,18 @@ class BotDataHandler:
 
             
         return dist_to_age_to_user_ids, pincode_to_age_to_user_ids
+
+
+    def update_broadcast_count_for_users(self, user_ids):
+        for user_id in user_ids:
+            user = self.db_session.query(UserActivity).get(user_id)
+            if not user:
+                user = UserActivity(user_id = user_id, broadcast_msg_count = 1, last_broadcast_time = datetime.now())
+                self.db_session.add(user)
+            else:
+                user.last_broadcast_time = datetime.now()
+                user.broadcast_msg_count += 1
+        self.db_session.commit()
 
     @staticmethod
     def get_chunked_msg_text(items, max_len):

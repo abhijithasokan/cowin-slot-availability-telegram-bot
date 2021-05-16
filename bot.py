@@ -50,7 +50,7 @@ def log_deco(func):
 class CowinBot:
     PIN_CODE, AGE, FETCH_CURRENT, UPDATE, AREA_SELECT_METHOD, SELECT_STATE, SELECT_DISTRICT = range(7)
     
-    AGE_KEYBOARD = ReplyKeyboardMarkup( [ [ag_gp] for ag_gp in BotDataHandler.AGE_MAPPING.keys()], one_time_keyboard=True)
+    AGE_KEYBOARD = ReplyKeyboardMarkup( [ [ag_gp[0]] for ag_gp in BotDataHandler.AGE_MAPPING_IN_ORDER], one_time_keyboard=True)
     AREA_TYPE_SELECT_KEYBOARD = ReplyKeyboardMarkup([AREA_INPUT_METHODS], one_time_keyboard=True)
  
     
@@ -77,15 +77,16 @@ class CowinBot:
         handlers.append( CommandHandler('stop_receiving_updates', self._handler_for_stop_updates))
         handlers.append( CommandHandler('resume_updates', self._handler_for_resume_updates))
         
+        override_cmds = [start_cmd_handler, help_cmd_handler]
         conv_handler = ConversationHandler(
             entry_points=[start_cmd_handler],
             states = {
-                CowinBot.AREA_SELECT_METHOD: [help_cmd_handler, MessageHandler(Filters.text, self._handler_for_area_type)],
-                CowinBot.PIN_CODE: [help_cmd_handler, MessageHandler(Filters.text, self._handler_update_pin_code)],
-                CowinBot.AGE: [help_cmd_handler, MessageHandler(Filters.text, self._handler_update_age)],
-                CowinBot.FETCH_CURRENT : [help_cmd_handler, MessageHandler(Filters.text, self._handler_current_status)],
-                CowinBot.SELECT_STATE : [help_cmd_handler, MessageHandler(Filters.text, self._handler_for_select_state)],
-                CowinBot.SELECT_DISTRICT : [help_cmd_handler, MessageHandler(Filters.text, self._handler_for_select_district)] 
+                CowinBot.AREA_SELECT_METHOD: override_cmds + [MessageHandler(Filters.text, self._handler_for_area_type)],
+                CowinBot.PIN_CODE: override_cmds + [MessageHandler(Filters.text, self._handler_update_pin_code)],
+                CowinBot.AGE: override_cmds + [MessageHandler(Filters.text, self._handler_update_age)],
+                CowinBot.FETCH_CURRENT : override_cmds + [MessageHandler(Filters.text, self._handler_current_status)],
+                CowinBot.SELECT_STATE : override_cmds + [MessageHandler(Filters.text, self._handler_for_select_state)],
+                CowinBot.SELECT_DISTRICT : override_cmds + [MessageHandler(Filters.text, self._handler_for_select_district)] 
             },
             fallbacks=[MessageHandler(Filters.text, self._handler_for_start)],
         )

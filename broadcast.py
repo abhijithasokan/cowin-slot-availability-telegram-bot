@@ -59,7 +59,7 @@ class BroadCaster:
     def push_updates(self):
         dist_to_age_to_user_ids, pincode_to_age_to_user_ids = self.data_handler.segregate_user_groups()
         num_queries = len(dist_to_age_to_user_ids) + len(pincode_to_age_to_user_ids)
-
+        users_who_got_broadcast = []
         for area_to_agewise_users, is_pincode in [(dist_to_age_to_user_ids, False), (pincode_to_age_to_user_ids, True)]:
             print("----")
             for area_code, age_wise_users in area_to_agewise_users.items():
@@ -79,9 +79,11 @@ class BroadCaster:
                         try:
                             for chunk in msg_chunks:
                                 self.bot.send_message(user_id, chunk)
+                            users_who_got_broadcast.append(user_id)
                         except Exception as ee:
                             log_msg("Failed for user {} reason {}".format(user_id, str(ee)))
 
+        self.data_handler.update_broadcast_count_for_users(users_who_got_broadcast)
 
 if __name__ == '__main__':  
     brd = BroadCaster()

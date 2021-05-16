@@ -1,5 +1,5 @@
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy import Sequence
 
 
@@ -28,11 +28,11 @@ class User(Base):
     def __str__(self):
         return self.__repr__()
 
-# class UserActivity(Base):
-#     __tablename__ = 'user_activity'
-#     user_id = Column(Integer, primary_key = True)
-#     msg_sent = Column(Integer, default = 0)  # to keep track of how much msg bot sent user.. 
-#     msg_recevied = Column(Integer, default = 1)
+class UserActivity(Base):
+    __tablename__ = 'user_activity'
+    user_id = Column(Integer, primary_key = True)
+    broadcast_msg_count = Column(Integer, default = 0) # to keep track of how much msg bot sent user.. 
+    last_broadcast_time = Column(DateTime)
 
 
 def get_db_login_info():
@@ -55,6 +55,3 @@ if __name__ == '__main__':
     Base.metadata.create_all(engine)
     
     session = sessionmaker(bind=engine)()
-
-    from sqlalchemy import select
-    x = session.query(User).get(137407007)

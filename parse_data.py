@@ -66,10 +66,12 @@ class CowinCenter:
         data = [json_data] if not isinstance(json_data, list) else json_data
 
         for center_d in data:
+            block_name = center_d['block_name']
+            block_name = block_name if 'not applicable' not in block_name.lower() else ''
             kwargs = {
                 'center_id' : center_d['center_id'],
                 'name' : center_d['name'],
-                'block_name' : center_d['block_name'],   
+                'block_name' : block_name,   
                 'fee_type' : center_d['fee_type'],
                 'sessions' : list(CowinCenterSession.build_session_from_json(center_d['sessions'])),
             }
@@ -84,10 +86,12 @@ class CowinCenter:
         for center_d in data:
             sessions = list(CowinCenterSession.build_and_get_filtered_sessions(center_d['sessions'], filter_age, filter_capacity))
             if sessions:
+                block_name = center_d['block_name']
+                block_name = block_name if 'not applicable' not in block_name.lower() else ''   
                 kwargs = {
                     'center_id' : center_d['center_id'],
                     'name' : center_d['name'],
-                    'block_name' : center_d['block_name'],   
+                    'block_name' : block_name,   
                     'fee_type' : center_d['fee_type'],
                     'sessions' : sessions,
                 }
