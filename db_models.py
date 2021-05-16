@@ -34,6 +34,14 @@ class UserActivity(Base):
     broadcast_msg_count = Column(Integer, default = 0) # to keep track of how much msg bot sent user.. 
     last_broadcast_time = Column(DateTime)
 
+class AreaUpdate(Base):
+    __tablename__ = 'area_update'
+    area_type = Column(String(10), primary_key = True)
+    area_code = Column(String(12), primary_key = True)
+    age_gp = Column(Integer, primary_key = True)
+    last_update = Column(String(65), nullable = True)
+    last_update_time = Column(DateTime, nullable = True)
+
 
 def get_db_login_info():
     import os

@@ -10,6 +10,8 @@ MESSAGES = {
     'view_updated' : 'To view *complete & updated list* press /get_latest',
 }
 
+ONE_HR_IN_SECS = 60 * 60
+THREE_QUATERS_OF_AN_HOUR = 45 * 60
 
 def log_msg(msg):
     print("<%s>  %s"%(datetime.now().strftime("%H:%M %d-%m"), msg))
@@ -55,6 +57,17 @@ class BroadCaster:
 
         return self.data_handler.get_chunked_msg_text(items, constants.MAX_MESSAGE_LENGTH)
 
+    def get_area_update_summary(self, centers):
+        slot_count = self.get_slot_count(centers)
+        return "S:{},C:{}".format(slot_count, len(centers))
+
+    
+    def is_to_send_update(self, area_rec, area_update_summary):
+        if (not area_rec.last_update_time) or ((datetime.now() - area_rec.last_update_time).seconds >= THREE_QUATERS_OF_AN_HOUR): 
+            return True
+        if (not area_rec.last_update) or (area_rec.last_update != area_update_summary):
+            return True
+        return False
 
     def push_updates(self):
         dist_to_age_to_user_ids, pincode_to_age_to_user_ids = self.data_handler.segregate_user_groups()
@@ -62,6 +75,7 @@ class BroadCaster:
         users_who_got_broadcast = []
         for area_to_agewise_users, is_pincode in [(dist_to_age_to_user_ids, False), (pincode_to_age_to_user_ids, True)]:
             print("----")
+            area_type = 'pincode' if is_pincode else 'district'
             for area_code, age_wise_users in area_to_agewise_users.items():
                 age_groups = age_wise_users.keys()
                 data_gen = self.data_handler.get_filtered_data_for_location(age_groups, area_code, is_pincode, slot_threshold = 1)
@@ -70,6 +84,14 @@ class BroadCaster:
                     slot_count = self.get_slot_count(centers)
                     if not slot_count:
                         continue
+
+                    area_rec = self.data_handler.get_area_update_record(area_type, area_code, age_gp)
+                    area_update_summary = self.get_area_update_summary(centers)
+
+                    if not self.is_to_send_update(area_rec, area_update_summary):
+                        log_msg("update skipped for {} {} {}".format(area_type, area_code, age_gp))
+                        continue
+
                     log_msg("area - {}, slot - {}, age - {}".format(area_code, slot_count, age_gp))
                     # add check for slot count here .. 
                     summary_msg = self.summarize(slot_count, len(centers), age_gp, area_code, is_pincode)
@@ -83,7 +105,11 @@ class BroadCaster:
                         except Exception as ee:
                             log_msg("Failed for user {} reason {}".format(user_id, str(ee)))
 
+                    self.data_handler.update_area_rec(area_rec, area_update_summary)
+
         self.data_handler.update_broadcast_count_for_users(users_who_got_broadcast)
+        self.data_handler.commit_db_session()
+
 
 if __name__ == '__main__':  
     brd = BroadCaster()

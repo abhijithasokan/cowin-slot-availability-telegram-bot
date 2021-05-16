@@ -8,7 +8,7 @@ import json
 from sqlalchemy import create_engine
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker 
-from db_models import User, UserActivity, get_db_login_info
+from db_models import User, UserActivity, AreaUpdate, get_db_login_info
 
 from collections import defaultdict
 
@@ -32,7 +32,7 @@ class BotDataHandler:
         uname = user.username if user.username else ''
         age = BotDataHandler.AGE_MAPPING.get(user_data['age'], BotDataHandler.AGE_MAPPING['All Age groups'])
         self.db_session.merge(User(user_id = user.id, uname = uname, fname = fname, 
-                                    area_type = user_data['area_type'], area_code = user_data['area_code'], age_group = age))
+                                    area_type = user_data['area_type'], area_code = user_data['area_code'], age_group = age, is_subscribed = True))
         self.db_session.commit()
 
 
@@ -127,6 +127,19 @@ class BotDataHandler:
                 user.broadcast_msg_count += 1
         self.db_session.commit()
 
+
+    def get_area_update_record(self, area_type, area_code, age_gp):
+        age_gp = int(age_gp)
+        area_rec = self.db_session.query(AreaUpdate).filter_by(area_type = area_type, area_code = area_code, age_gp = age_gp).first()
+        if not area_rec:
+            area_rec = AreaUpdate(area_type = area_type, area_code = area_code, age_gp = age_gp)
+            self.db_session.add(area_rec)
+        return area_rec
+
+    def update_area_rec(self, area_rec, area_update_summary):
+        area_rec.last_update_time = datetime.now()
+        area_rec.last_update = area_update_summary
+
     @staticmethod
     def get_chunked_msg_text(items, max_len):
         if not items:
@@ -140,6 +153,8 @@ class BotDataHandler:
                 chunks[-1] = chunks[-1] + '\n' + ss
         return chunks
 
+    def commit_db_session(self):
+        self.db_session.commit()
 
     def get_age_str(self, age):
         return str(age).lower().replace('groups', '').replace('group', '').replace('age','').title().strip()
