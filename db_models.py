@@ -1,6 +1,7 @@
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy import Sequence
+from sqlalchemy.sql import func
 
 
 Base = declarative_base()
@@ -21,7 +22,7 @@ class User(Base):
     area_type = Column(String(10))
     area_code = Column(String(12))
     age_group = Column(Integer)
-
+    signup_time = Column(DateTime, server_default=func.now())
 
     def __repr__(self):
         return "User - %s %s %s %s %s"%(self.fname, self.uname, self.area_type, self.area_code, self.age_group)
