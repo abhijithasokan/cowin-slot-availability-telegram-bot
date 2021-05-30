@@ -13,6 +13,17 @@ MESSAGES = {
 ONE_HR_IN_SECS = 60 * 60
 THREE_QUATERS_OF_AN_HOUR = 45 * 60
 
+BROADCAST_THRESHOLDS = {
+    'centers' : {
+        'percentage' : 10.0,
+        'abs_diff' : 2
+    },
+    'slots' : {
+        'percentage' : 20.0,
+        'abs_diff' : 50
+    },
+}
+
 def log_msg(msg):
     print("<%s>  %s"%(datetime.now().strftime("%H:%M %d-%m"), msg))
 
@@ -61,12 +72,30 @@ class BroadCaster:
         slot_count = self.get_slot_count(centers)
         return "S:{},C:{}".format(slot_count, len(centers))
 
-    
+    def get_slots_and_centre_count_from_summary(self, summary):
+        count_slot, count_centres = summary.split(',')
+        count_slot, count_centres = int(count_slot[2:]), int(count_centres[2:])
+        return count_slot, count_centres
+
+
     def is_to_send_update(self, area_rec, area_update_summary):
         if (not area_rec.last_update_time) or ((datetime.now() - area_rec.last_update_time).seconds >= THREE_QUATERS_OF_AN_HOUR): 
             return True
-        if (not area_rec.last_update) or (area_rec.last_update != area_update_summary):
+        if (not area_rec.last_update): 
             return True
+
+        prev_count_slot, prev_count_centres = self.get_slots_and_centre_count_from_summary(area_rec.last_update)
+        count_slot, count_centres = self.get_slots_and_centre_count_from_summary(area_update_summary)
+
+        percentage_increase  = lambda x, y: (x-y)*1.0/y
+        if percentage_increase(count_centres, prev_count_centres) >= BROADCAST_THRESHOLDS['centers']['percentage']:
+            if (count_centres - prev_count_centres) >= BROADCAST_THRESHOLDS['centers']['abs_diff']:
+                return True
+
+        if percentage_increase(count_slot, prev_count_slot) >= BROADCAST_THRESHOLDS['slots']['percentage']:
+            if (count_slot - prev_count_slot) >= BROADCAST_THRESHOLDS['slots']['abs_diff']:
+                return True
+
         return False
 
     def push_updates(self):
