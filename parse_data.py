@@ -2,8 +2,10 @@
 from datetime import datetime
 from emojis import EMOJIS
 
+
 class CowinDataParser():
     pass
+
 
 class CowinCenterSession:
     def __init__(self, session_id, date, vaccine, available_capacity, min_age_limit):

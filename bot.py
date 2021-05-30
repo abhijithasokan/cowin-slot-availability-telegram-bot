@@ -24,11 +24,12 @@ MESSAGES = {
     'no_slots' : 'Currently no vaccinations slots are available in your area ' + EMOJIS['sad'] + ' \nStay tuned for updates',
     'invalid_age_group' : "Please provide a valid age group\nChoices are - " + ', '.join(BotDataHandler.AGE_MAPPING.keys()),
     'ask_area_type' : 'Choose an option to input your area ' +  EMOJIS['location'] + '\n\nNOTE: Selecting district will give you access to more vaccination centres updates',
+    'ask_vaccine': 'Select the type of vaccine',
 }
 
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                     level=logging.INFO)
+                    level=logging.INFO)
 
 DBG_LVL = ''
 from datetime import datetime
@@ -48,9 +49,10 @@ def log_deco(func):
 
 
 class CowinBot:
-    PIN_CODE, AGE, FETCH_CURRENT, UPDATE, AREA_SELECT_METHOD, SELECT_STATE, SELECT_DISTRICT = range(7)
+    PIN_CODE, AGE, FETCH_CURRENT, UPDATE, AREA_SELECT_METHOD, SELECT_STATE, SELECT_DISTRICT, VACCINE_TYPE = range(8)
     
     AGE_KEYBOARD = ReplyKeyboardMarkup( [ [ag_gp[0]] for ag_gp in BotDataHandler.AGE_MAPPING_IN_ORDER], one_time_keyboard=True)
+    VACCINE_TYPE_KEYBOARD = ReplyKeyboardMarkup([[i] for i in BotDataHandler.VACCINE_TYPES], one_time_keyboard=True)
     AREA_TYPE_SELECT_KEYBOARD = ReplyKeyboardMarkup([AREA_INPUT_METHODS], one_time_keyboard=True)
  
     
@@ -83,6 +85,7 @@ class CowinBot:
             states = {
                 CowinBot.AREA_SELECT_METHOD: override_cmds + [MessageHandler(Filters.text, self._handler_for_area_type)],
                 CowinBot.PIN_CODE: override_cmds + [MessageHandler(Filters.text, self._handler_update_pin_code)],
+                CowinBot.VACCINE_TYPE: override_cmds + [MessageHandler(Filters.text, self._handler_update_vaccine_type)],
                 CowinBot.AGE: override_cmds + [MessageHandler(Filters.text, self._handler_update_age)],
                 CowinBot.FETCH_CURRENT : override_cmds + [MessageHandler(Filters.text, self._handler_current_status)],
                 CowinBot.SELECT_STATE : override_cmds + [MessageHandler(Filters.text, self._handler_for_select_state)],
@@ -164,7 +167,7 @@ class CowinBot:
         context.user_data['area_name'] = "Dist - " + district_name
         update.message.reply_text(MESSAGES['ask_age'], reply_markup=CowinBot.AGE_KEYBOARD)
         return CowinBot.AGE
-    
+
     @log_deco
     def _handler_update_pin_code(self, update, context):
         pin_code_str = update.message.text.strip()
@@ -175,9 +178,16 @@ class CowinBot:
         pin_code = int(pin_code_str)
         context.user_data['area_name'] = "Pincode - " + str(pin_code)
         context.user_data['area_code'] = pin_code
+        update.message.reply_text(MESSAGES['ask_vaccine'], reply_markup=CowinBot.VACCINE_TYPE_KEYBOARD)
+        return CowinBot.VACCINE_TYPE
+
+    @staticmethod
+    def _handler_update_vaccine_type(update, context):
+        vaccine_type = update.message.text.strip()
+        logging.info(f"registering for {vaccine_type=}")
+        context.user_data['vaccine_type'] = vaccine_type
         update.message.reply_text(MESSAGES['ask_age'], reply_markup=CowinBot.AGE_KEYBOARD)
         return CowinBot.AGE
-
 
     @log_deco
     def _handler_update_age(self, update, context):  
@@ -277,8 +287,6 @@ def send_message(text, sender_func):
     for part in parts:
         sender_func(part)
     return msg  # return only the last message
-
-
 
 
 if __name__ == '__main__':
