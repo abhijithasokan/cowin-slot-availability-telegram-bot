@@ -82,8 +82,15 @@ class BroadCaster:
         return count_slot, count_centres
 
 
-    def is_to_send_update(self, area_rec, area_update_summary):
-        if (not area_rec.last_update_time) or ((datetime.now() - area_rec.last_update_time).seconds >= THREE_QUATERS_OF_AN_HOUR): 
+    def check_if_center_have_more_than_one_slot(self, centers):
+        return any( sum(ss.available_capacity_ for ss in center.sessions_) > 1 for center in centers)
+
+    def is_to_send_update(self, area_rec, area_update_summary, centers):
+        if (not area_rec.last_update_time):
+            return True
+        if not self.check_if_center_have_more_than_one_slot(centers):
+            return False
+        if ((datetime.now() - area_rec.last_update_time).seconds >= THREE_QUATERS_OF_AN_HOUR): 
             return True
         if (not area_rec.last_update): 
             return True
@@ -121,7 +128,7 @@ class BroadCaster:
                     area_rec = self.data_handler.get_area_update_record(area_type, area_code, age_gp)
                     area_update_summary = self.get_area_update_summary(centers)
 
-                    if not self.is_to_send_update(area_rec, area_update_summary):
+                    if not self.is_to_send_update(area_rec, area_update_summary, centers):
                         log_msg("update skipped for {} {} {}".format(area_type, area_code, age_gp))
                         continue
 
