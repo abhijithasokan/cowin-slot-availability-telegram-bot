@@ -1,4 +1,4 @@
-
+from collections import defaultdict
 from datetime import datetime
 from emojis import EMOJIS
 
@@ -6,11 +6,13 @@ class CowinDataParser():
     pass
 
 class CowinCenterSession:
-    def __init__(self, session_id, date, vaccine, available_capacity, min_age_limit):
+    def __init__(self, session_id, date, vaccine, available_capacity, available_capacity_dose1, available_capacity_dose2, min_age_limit):
         self.session_id_ = session_id
         self.date_ = date
         self.vaccine_ = vaccine
         self.available_capacity_ = available_capacity
+        self.available_capacity_dose1_ = available_capacity_dose1
+        self.available_capacity_dose2_ = available_capacity_dose2
         self.min_age_limit_ = min_age_limit
 
     @staticmethod
@@ -22,7 +24,9 @@ class CowinCenterSession:
             kwargs = {
                 'session_id' : session_d['session_id'],
                 'date' : datetime.strptime(session_d['date'], "%d-%m-%Y"),
-                'available_capacity' : int(session_d['available_capacity']),   
+                'available_capacity' : int(session_d['available_capacity']),
+                'available_capacity_dose1' : int(session_d['available_capacity_dose1']),   
+                'available_capacity_dose2' : int(session_d['available_capacity_dose2']),      
                 'min_age_limit' : int(session_d['min_age_limit']),
                 'vaccine' : session_d['vaccine'],
             }
@@ -38,17 +42,24 @@ class CowinCenterSession:
 
     @staticmethod
     def get_session_msg(v_ss):
-        msg = '''
-________________________________
-| Date | Seats | Age |   Vaccine
-'''
+        vaccine_to_sessions = defaultdict(list)
         for session in v_ss:
-            vacc_name = session.vaccine_.title()[:min(10, len(session.vaccine_))]
-            # msg_date_part = session.date_.strftime("%d/%m") 
-            # msg_seats = str(session.available_capacity_)
-            # msg_seats = 
-            msg += ' {0: <6}  {1: >7}   {2: >6}     {3: >10}\n'.format(session.date_.strftime("%d/%m"), session.available_capacity_, session.min_age_limit_, vacc_name)
-        msg += '________________________________'
+            vaccine_to_sessions[session.vaccine_].append(session)
+        msg = ''
+        for vaccine, v_ss in vaccine_to_sessions.items():
+            msg += '\nVaccine: {}'.format(vaccine.title())
+            msg += '''
+________________________________
+| Date |     Age     |       Seats 
+'''
+            for session in v_ss:
+                #vacc_name = session.vaccine_.title()[:min(10, len(session.vaccine_))]
+                dte = session.date_.strftime("%d/%m")
+                d1_cap = 'D1:{:3}'.format(session.available_capacity_dose1_ if session.available_capacity_dose1_ <= 999 else '1K+')
+                d2_cap = 'D2:{:3}'.format(session.available_capacity_dose2_ if session.available_capacity_dose2_ <= 999 else '1K+')
+                cap = '{}  {}'.format(d1_cap, d2_cap)
+                msg += ' {0} {1: >8}        {2: >12}\n'.format(dte, session.min_age_limit_, cap)
+            msg += '________________________________'
         return msg
 
 
@@ -102,4 +113,5 @@ class CowinCenter:
         ss = EMOJIS['hospital']  + ' {}, {}\n'.format(self.name_, self.block_name_)
         ss += 'Fee: {}'.format(self.fee_type_)
         ss += CowinCenterSession.get_session_msg(self.sessions_)
+        ss += '\n\n'
         return ss

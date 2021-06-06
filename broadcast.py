@@ -7,7 +7,7 @@ from telegram import Bot, constants
 MESSAGES = {
     'stop_resume_updates' : 'Click here to /stop_receiving_updates\nYou can later /resume_updates',
     'view_complete' : 'To view *complete list* press /get_latest',
-    'view_updated' : 'To view *complete & updated list* press /get_latest',
+    'view_updated' : 'To view *updated list* press /get_latest',
 }
 
 ONE_HR_IN_SECS = 60 * 60
@@ -38,13 +38,17 @@ class BroadCaster:
         self.dist_code_to_name = self.data_handler.get_dist_code_to_name_from_disk()
 
     def get_slot_count(self, centers):
-        return sum( sum(ss.available_capacity_ for ss in center.sessions_) for center in centers )
+        all_dose = sum( sum(ss.available_capacity_ for ss in center.sessions_) for center in centers )
+        dose1 = sum( sum(ss.available_capacity_dose1_ for ss in center.sessions_) for center in centers )
+        dose2 = sum( sum(ss.available_capacity_dose2_ for ss in center.sessions_) for center in centers )
+        return { 'all': all_dose, 'd1' : dose1, 'd2' : dose2 }
 
     def summarize(self, slot_count, num_centers, age, area_code, is_pincode):
-        msg  = 'There %s ' %('are' if slot_count != 1 else 'is' ) 
-        msg += str(slot_count) if slot_count else 'no'
-        msg += ' slots ' if slot_count != 1 else ' slot ' 
-        msg += 'available across %d %s '%(num_centers, 'centres' if slot_count !=1 else 'centre') if slot_count else ''
+        all_c, d1_c, d2_c = slot_count['all'], slot_count['d1'], slot_count['d2']
+        msg  = 'There %s ' %('are' if all_c != 1 else 'is' ) 
+        msg += '{} (Dose1 - {}, Dose2 - {})'.format(all_c, d1_c, d2_c) if all_c else 'no'
+        msg += ' slots ' if all_c != 1 else ' slot ' 
+        msg += 'available across %d %s '%(num_centers, 'centres' if num_centers !=1 else 'centre') if all_c else ''
         msg += 'in '
         msg += '[pin] %s'%(area_code) if is_pincode else self.dist_code_to_name.get(area_code, '[district] %s'%area_code)
         msg += ' for {} age group'.format(self.data_handler.get_age_str2(age))
@@ -60,16 +64,16 @@ class BroadCaster:
         can_send_all_data_now = (len(centers) <= MAX_CENTERS_IN_MSG)
 
         items  = [summary_msg + '\n\n']
-        items += ["Here are few of them\n\n"]  if (not can_send_all_data_now) else [] 
         items += centers if can_send_all_data_now else self.get_few_from_top(centers, MAX_CENTERS_IN_MSG)
-        items += ["\n\n"]
+        items += ["\n"]
+        items += ["These are the top {} among {} centers".format(MAX_CENTERS_IN_MSG, len(centers))]  if (not can_send_all_data_now) else [] 
         items += [MESSAGES['view_complete']] if (not can_send_all_data_now) else [MESSAGES['view_updated']]
         items += ['\n\n' + MESSAGES['stop_resume_updates']]
 
         return self.data_handler.get_chunked_msg_text(items, constants.MAX_MESSAGE_LENGTH)
 
     def get_area_update_summary(self, centers):
-        slot_count = self.get_slot_count(centers)
+        slot_count = self.get_slot_count(centers)['all']
         return "S:{},C:{}".format(slot_count, len(centers))
 
     def get_slots_and_centre_count_from_summary(self, summary):
@@ -111,7 +115,7 @@ class BroadCaster:
                 print("Handle - %s" % area_code)
                 for age_gp, centers in data_gen:
                     slot_count = self.get_slot_count(centers)
-                    if not slot_count:
+                    if not slot_count['all']:
                         continue
 
                     area_rec = self.data_handler.get_area_update_record(area_type, area_code, age_gp)
