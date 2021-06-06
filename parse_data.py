@@ -2,10 +2,10 @@ from collections import defaultdict
 from datetime import datetime
 from emojis import EMOJIS
 
-class CowinDataParser():
-    pass
 
 class CowinCenterSession:
+    ALL_AGE = 200
+
     def __init__(self, session_id, date, vaccine, available_capacity, available_capacity_dose1, available_capacity_dose2, min_age_limit):
         self.session_id_ = session_id
         self.date_ = date
@@ -37,8 +37,11 @@ class CowinCenterSession:
     @staticmethod
     def build_and_get_filtered_sessions(data, filter_age, filter_capacity):
         for ss in CowinCenterSession.build_session_from_json(data):
-            if ss.min_age_limit_ <= filter_age and ss.available_capacity_ >= filter_capacity:
-                yield ss
+            if ss.available_capacity_ < filter_capacity:
+                continue
+            if (filter_age != CowinCenterSession.ALL_AGE) and (ss.min_age_limit_ != filter_age):
+                continue
+            yield ss
 
     @staticmethod
     def get_session_msg(v_ss):

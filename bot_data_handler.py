@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import datetime
 
 from fetch_cowin_data import CowinDataConnector
-from parse_data import CowinCenter
+from parse_data import CowinCenter, CowinCenterSession
 import json
 
 from sqlalchemy import create_engine
@@ -13,7 +13,7 @@ from db_models import User, UserActivity, AreaUpdate, get_db_login_info
 from collections import defaultdict
 
 class BotDataHandler:
-    AGE_MAPPING_IN_ORDER = [ ('Above 45', 45), ('All Age groups', 200), ('Above 18', 18) ]
+    AGE_MAPPING_IN_ORDER = [ ('Above 45', 45), ('All Age groups', CowinCenterSession.ALL_AGE), ('Above 18', 18) ]
     AGE_MAPPING = dict(AGE_MAPPING_IN_ORDER)
     REV_AGE_MAPPING = { val:key for key, val in AGE_MAPPING.items()}
 
