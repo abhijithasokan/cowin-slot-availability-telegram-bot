@@ -9,7 +9,7 @@ import os
 from collections import defaultdict
 
 import logging
-logging.basicConfig(encoding='utf-8', level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 class CowinDataConnector:
     ROOT_URL = 'https://cdn-api.co-vin.in'
