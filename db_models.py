@@ -29,11 +29,13 @@ class User(Base):
     def __str__(self):
         return self.__repr__()
 
+
 class UserActivity(Base):
     __tablename__ = 'user_activity'
     user_id = Column(Integer, primary_key = True)
     broadcast_msg_count = Column(Integer, default = 0) # to keep track of how much msg bot sent user.. 
     last_broadcast_time = Column(DateTime)
+
 
 class AreaUpdate(Base):
     __tablename__ = 'area_update'
@@ -54,13 +56,19 @@ def get_db_login_info():
         info = json.load(fp)
         return info['DB_SETTINGS']
 
+
 if __name__ == '__main__':
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
     
     db_login_info = get_db_login_info()
-    host, db_name, user_name, password = db_login_info['host'], db_login_info['name'], db_login_info['username'], db_login_info['password']
-    engine = create_engine("mysql+pymysql://{}:{}@{}/{}?charset=utf8mb4".format(user_name, password, host, db_name), echo=True)
+    driver = "mysql+pymysql"  # default driver
+    if db_login_info.get("driver"):
+        driver = "postgresql"
+
+    db_url = f"{driver}://{db_login_info['username']}:{db_login_info['password']}@{db_login_info['host']}/" \
+             f"{db_login_info['name']}{'?charset=utf8mb4' if driver != 'postgresql' else ''}"  # Hacky for now
+    engine = create_engine(db_url, echo=True)
     Base.metadata.create_all(engine)
     
     session = sessionmaker(bind=engine)()
