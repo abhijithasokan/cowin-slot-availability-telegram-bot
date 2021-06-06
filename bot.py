@@ -293,3 +293,5 @@ if __name__ == '__main__':
         data_handler = BotDataHandler()
         bot = CowinBot(token, data_handler)
         bot.start_listening()
+    else:
+        logging.critical("BOT token not found in env var - COWIN_TEL_BOT_KEY")

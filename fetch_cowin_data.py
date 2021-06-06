@@ -8,6 +8,8 @@ import time
 import os
 from collections import defaultdict
 
+import logging
+logging.basicConfig(encoding='utf-8', level=logging.INFO)
 
 class CowinDataConnector:
     ROOT_URL = 'https://cdn-api.co-vin.in'
@@ -53,9 +55,9 @@ class CowinDataConnector:
     def _fetch_data_pin_code_helper(self, pin_code, date_str):
         url = self._build_url(CowinDataConnector.PIN_URL, pincode = pin_code, date =  date_str )
         response = self.session.get(url)
-        print("GET: ", url)
+        logging.info('GET: {}'.format(url))
         if response.status_code != 200:
-            print(response.text)
+            logging.error("API request failed {}. Resp - {}".format(url, response.text))
             return None  
         try: 
             data = json.loads(response.text)
@@ -67,9 +69,9 @@ class CowinDataConnector:
     def _fetch_data_dist_code_helper(self, dist_code, date_str):
         url = self._build_url(CowinDataConnector.DIST_URL, district_id = dist_code, date =  date_str )
         response = self.session.get(url)
-        print("GET: ", url)
+        logging.info('GET: {}'.format(url))
         if response.status_code != 200:
-            print(response.text)
+            logging.error("API request failed {}. Resp - {}".format(url, response.text))
             return None  
         try: 
             data = json.loads(response.text)
@@ -79,9 +81,8 @@ class CowinDataConnector:
 
 
     def _fetch_states_and_districts_and_dump(self):
-        print("-- fetch_states_and_districts_and_dump()")
+        logging.info("-- fetch_states_and_districts_and_dump()")
         response = self.session.get(CowinDataConnector.STATE_LIST_URL)
-        print(CowinDataConnector.STATE_LIST_URL)
         if response.status_code != 200:
             return None
         states_data = json.loads(response.text)
@@ -116,7 +117,7 @@ class CowinDataConnector:
 
     @cachedmethod(operator.attrgetter('cache_state_data'))
     def get_states_data(self):
-        print("-- get_states_data()")
+        logging.info("-- get_states_data()")
         try: 
             data = self. _fetch_states_and_districts_and_dump()
         except:
@@ -145,6 +146,7 @@ class CowinDataConnector:
             data = self._fetch_data_dist_code_helper(area_code, date_str)    
         if data is None:
             self.cache.pop(hashkey(area_code, date_str), None)
+            logging.error("API returned empty data. {}".format(area_code))
         return data
 
 
