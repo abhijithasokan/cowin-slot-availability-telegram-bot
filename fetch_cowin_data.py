@@ -52,28 +52,18 @@ class CowinDataConnector:
 
 
     @cachedmethod(operator.attrgetter('cache'))
-    def _fetch_data_pin_code_helper(self, pin_code, date_str):
-        url = self._build_url(CowinDataConnector.PIN_URL, pincode = pin_code, date =  date_str )
-        response = self.session.get(url)
-        logging.info('GET: {}'.format(url))
-        if response.status_code != 200:
-            logging.error("API request failed {}. Resp - {}".format(url, response.text))
-            return None  
-        try: 
-            data = json.loads(response.text)
-        except:
-            data = {}
-        return data
+    def _fetch_data_helper(self, area_code, date_str, is_pin_code_based):
+        if is_pin_code_based:
+            url = self._build_url(CowinDataConnector.PIN_URL, pincode=area_code, date=date_str)
+        else:
+            url = self._build_url(CowinDataConnector.DIST_URL, district_id=area_code, date=date_str)
 
-    @cachedmethod(operator.attrgetter('cache'))
-    def _fetch_data_dist_code_helper(self, dist_code, date_str):
-        url = self._build_url(CowinDataConnector.DIST_URL, district_id = dist_code, date =  date_str )
         response = self.session.get(url)
         logging.info('GET: {}'.format(url))
         if response.status_code != 200:
             logging.error("API request failed {}. Resp - {}".format(url, response.text))
-            return None  
-        try: 
+            return None
+        try:
             data = json.loads(response.text)
         except:
             data = {}
@@ -136,17 +126,29 @@ class CowinDataConnector:
                 data = json.load(fp)
                 return data
 
-
+    def _update_pin_code_cache_with_district_data(self, dist_data: dict, date_str: str):
+        data: Any = dist_data.get('centers', None)
+        if data is None:
+            return
+        pin_code_to_centers = defaultdict(list)
+        for center in data:
+            pin_code_to_centers[str(center['pincode'])].append(center)
+        new_cache_entries = [((pin_code, date_str, True), {'centers': centers}) for pin_code, centers in
+                             pin_code_to_centers.items()]
+        self.cache.update(new_cache_entries)
+        return
 
     def fetch_data(self, area_code, date, is_pin_code_based = False):
         date_str = date.strftime("%d-%m-%Y")
-        if is_pin_code_based:
-            data = self._fetch_data_pin_code_helper(area_code, date_str)
-        else:
-            data = self._fetch_data_dist_code_helper(area_code, date_str)    
+        area_code = str(area_code)
+        data = self._fetch_data_helper(area_code, date_str, is_pin_code_based)
         if data is None:
-            self.cache.pop(hashkey(area_code, date_str), None)
+            self.cache.pop(hashkey(area_code, date_str, is_pin_code_based), None)
             logging.error("API returned empty data. {}".format(area_code))
+        else:
+            if not is_pin_code_based: # area type is district
+                self._update_pin_code_cache_with_district_data(data, date_str)
+
         return data
 
 

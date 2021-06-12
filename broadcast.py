@@ -32,7 +32,7 @@ class BroadCaster:
         token = os.environ.get('COWIN_TEL_BOT_KEY')
         if token is None:
             raise Exception("Bot token not available, can't proceed")
-        self.data_handler = BotDataHandler()
+        self.data_handler = BotDataHandler(response_cache_time=3600)
         self.bot = Bot(token)
 
         self.dist_code_to_name = self.data_handler.get_dist_code_to_name_from_disk()

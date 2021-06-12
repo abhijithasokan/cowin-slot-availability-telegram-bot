@@ -290,7 +290,7 @@ if __name__ == '__main__':
         DBG_LVL = 'DBG'
     
     if token is not None:
-        data_handler = BotDataHandler()
+        data_handler = BotDataHandler(response_cache_time=120)
         bot = CowinBot(token, data_handler)
         bot.start_listening()
     else:

@@ -12,19 +12,20 @@ from db_models import User, UserActivity, AreaUpdate, get_db_login_info
 
 from collections import defaultdict
 
+
 class BotDataHandler:
     AGE_MAPPING_IN_ORDER = [ ('Above 45', 45), ('All Age groups', CowinCenterSession.ALL_AGE), ('Above 18', 18) ]
     AGE_MAPPING = dict(AGE_MAPPING_IN_ORDER)
     REV_AGE_MAPPING = { val:key for key, val in AGE_MAPPING.items()}
 
-    def __init__(self):
+    def __init__(self, response_cache_time):
         db_login_info = get_db_login_info()
         host, db_name, user_name, password = db_login_info['host'], db_login_info['name'], db_login_info['username'], db_login_info['password']
         engine = create_engine("mysql+pymysql://{}:{}@{}/{}?charset=utf8mb4".format(user_name, password, host, db_name))
     
         self.db_session = sessionmaker(bind=engine)()
 
-        self.data_conn = CowinDataConnector()
+        self.data_conn = CowinDataConnector(response_cache_time=response_cache_time)
         
 
     def add_user(self, user, user_data):
