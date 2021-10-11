@@ -26,7 +26,7 @@ The bot was initially built to serve family and close friends but soon became av
         </tr>
         <tr> 
             <td> Pincodes served </td>
-            <td> 759 </td>
+            <td> 581 </td>
         </tr>
         <tr> 
             <td> Broadcasts updates sent so far </td>
