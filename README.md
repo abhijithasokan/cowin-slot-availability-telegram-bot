@@ -17,7 +17,7 @@ The server side of the bot queried the official CoWin (India's centralized onlin
 
 The bot was initially built to serve family and close friends but soon became available to a wider audience.
 
-## Stats (on 11th Oct 2021 @ 22:55)
+## Stats (on 31st Dec 2021 @ 21:37)
 <table>
     <tbody>
         <tr> 
@@ -30,7 +30,7 @@ The bot was initially built to serve family and close friends but soon became av
         </tr>
         <tr> 
             <td> Broadcasts updates sent so far </td>
-            <td> 1.18 M (1,183,258) </td>
+            <td> 1.96 M (1,961,394) </td>
         </tr>
     </tbody>
 </table>
